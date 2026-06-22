@@ -31,7 +31,7 @@ metadata:
   annotations:
     devops.kubesphere.io/credential-type: basic-auth
     kubesphere.io/creator: admin
-type: Opaque
+type: credential.devops.kubesphere.io/basic-auth
 stringData:
   username: sebu5683
   password: YOUR_DOCKERHUB_PASSWORD_OR_TOKEN
@@ -44,7 +44,7 @@ metadata:
   annotations:
     devops.kubesphere.io/credential-type: basic-auth
     kubesphere.io/creator: admin
-type: Opaque
+type: credential.devops.kubesphere.io/basic-auth
 stringData:
   username: SebastianBaiju
   password: YOUR_GITHUB_PERSONAL_ACCESS_TOKEN

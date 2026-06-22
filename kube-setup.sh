@@ -101,7 +101,7 @@ echo -e "${BLUE}=============================================${NC}"
 
 # 6. Success message
 echo -e "${GREEN}[+] SUCCESS: Application components applied!${NC}"
-echo -e "Access the separate Nginx Proxy: http://localhost:30080"
+echo -e "Access the separate Nginx Proxy: http://localhost:30082"
 echo -e "Access the frontend directly: http://localhost:30081"
 echo -e "Or via Ingress Host: http://expense-manager.local"
 echo -e "${BLUE}=============================================${NC}"
