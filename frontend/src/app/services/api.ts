@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly baseUrl = (window.location.port === '4200')
+  private readonly baseUrl = (typeof window !== 'undefined' && window.location && window.location.port === '4200')
     ? `http://${window.location.hostname}:8080/api`
     : '/api';
   private readonly router = inject(Router);
@@ -16,7 +16,7 @@ export class ApiService {
       headers['Content-Type'] = 'application/json';
     }
     
-    const token = localStorage.getItem('token');
+    const token = typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' ? localStorage.getItem('token') : null;
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -25,7 +25,9 @@ export class ApiService {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (response.status === 401) {
-      localStorage.clear();
+      if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+        localStorage.clear();
+      }
       this.router.navigate(['/login']);
       throw new Error('Unauthorized');
     }

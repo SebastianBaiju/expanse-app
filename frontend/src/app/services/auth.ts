@@ -17,18 +17,20 @@ export class AuthService {
   private readonly router = inject(Router);
 
   // Signals for application state
-  readonly token = signal<string | null>(localStorage.getItem('token'));
-  readonly currentUser = signal<string | null>(localStorage.getItem('token') ? localStorage.getItem('username') : null);
-  readonly currentUserRole = signal<string | null>(localStorage.getItem('token') ? localStorage.getItem('role') : null);
-  readonly currentUserEmail = signal<string | null>(localStorage.getItem('token') ? localStorage.getItem('email') : null);
+  readonly token = signal<string | null>(typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' ? localStorage.getItem('token') : null);
+  readonly currentUser = signal<string | null>(typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && localStorage.getItem('token') ? localStorage.getItem('username') : null);
+  readonly currentUserRole = signal<string | null>(typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && localStorage.getItem('token') ? localStorage.getItem('role') : null);
+  readonly currentUserEmail = signal<string | null>(typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && localStorage.getItem('token') ? localStorage.getItem('email') : null);
 
   async login(username: string, password: string): Promise<void> {
     const session = await this.api.post<UserSession>('/auth/login', { username, password });
     
-    localStorage.setItem('token', session.token);
-    localStorage.setItem('username', session.username);
-    localStorage.setItem('role', session.role);
-    localStorage.setItem('email', session.email);
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('token', session.token);
+      localStorage.setItem('username', session.username);
+      localStorage.setItem('role', session.role);
+      localStorage.setItem('email', session.email);
+    }
 
     this.token.set(session.token);
     this.currentUser.set(session.username);
@@ -43,7 +45,9 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
     this.token.set(null);
     this.currentUser.set(null);
     this.currentUserRole.set(null);
