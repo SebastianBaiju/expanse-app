@@ -109,6 +109,7 @@ func main() {
 		admin.Use(handlers.AdminMiddleware())
 		{
 			admin.GET("/users", handlers.AdminGetUsers)
+			admin.POST("/users", handlers.AdminCreateUser)
 			admin.PUT("/users/:id/role", handlers.AdminUpdateUserRole)
 			admin.DELETE("/users/:id", handlers.AdminDeleteUser)
 		}

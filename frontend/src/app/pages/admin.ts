@@ -17,6 +17,44 @@ import { AuthService } from '../services/auth';
         </div>
       </div>
 
+      <!-- User Creation Form -->
+      <div class="glass-card create-user-card">
+        <div class="card-header">
+          <h3>Create New User Account</h3>
+          <p class="text-muted">Directly register a new administrator or standard user account.</p>
+        </div>
+        <form (ngSubmit)="createUser()" class="admin-form">
+          @if (successMessage()) {
+            <div class="alert alert-success">{{ successMessage() }}</div>
+          }
+          @if (errorMessage()) {
+            <div class="alert alert-error">{{ errorMessage() }}</div>
+          }
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-input" placeholder="Username" [(ngModel)]="newUsername" name="username" required minlength="3" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" class="form-input" placeholder="Email Address" [(ngModel)]="newEmail" name="email" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" placeholder="Password (min. 6 chars)" [(ngModel)]="newPassword" name="password" required minlength="6" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role Designation</label>
+              <select class="form-input form-select" [(ngModel)]="newRole" name="role" required>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm submit-btn">Create Account</button>
+        </form>
+      </div>
+
       <div class="glass-card table-panel">
         <div class="table-header">
           <h3>Registered Users List</h3>
@@ -159,6 +197,48 @@ import { AuthService } from '../services/auth';
       color: var(--text-muted);
       font-size: 0.95rem;
     }
+    .create-user-card {
+      padding: 1.5rem 2rem;
+    }
+    .admin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .submit-btn {
+      align-self: flex-start;
+      padding: 0.6rem 1.5rem;
+    }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--income-green);
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--expense-red);
+    }
   `]
 })
 export class AdminPage implements OnInit {
@@ -166,6 +246,16 @@ export class AdminPage implements OnInit {
   private readonly auth = inject(AuthService);
 
   readonly users = signal<UserAccount[]>([]);
+
+  // User creation form fields
+  newUsername = '';
+  newEmail = '';
+  newPassword = '';
+  newRole = 'user';
+
+  // Alerts
+  readonly successMessage = signal<string | null>(null);
+  readonly errorMessage = signal<string | null>(null);
 
   ngOnInit() {
     this.loadUsers();
@@ -182,6 +272,38 @@ export class AdminPage implements OnInit {
 
   isSelf(user: UserAccount): boolean {
     return user.username === this.auth.currentUser();
+  }
+
+  async createUser() {
+    this.successMessage.set(null);
+    this.errorMessage.set(null);
+
+    if (!this.newUsername || !this.newEmail || !this.newPassword || !this.newRole) {
+      this.errorMessage.set('All fields are required.');
+      return;
+    }
+
+    try {
+      await this.dataService.adminCreateUser({
+        username: this.newUsername,
+        email: this.newEmail,
+        password: this.newPassword,
+        role: this.newRole
+      });
+
+      this.successMessage.set(`Successfully created account for "${this.newUsername}".`);
+      
+      // Reset form fields
+      this.newUsername = '';
+      this.newEmail = '';
+      this.newPassword = '';
+      this.newRole = 'user';
+
+      // Reload users list
+      await this.loadUsers();
+    } catch (err: any) {
+      this.errorMessage.set(err.message || 'Failed to create user account.');
+    }
   }
 
   async toggleRole(user: UserAccount) {

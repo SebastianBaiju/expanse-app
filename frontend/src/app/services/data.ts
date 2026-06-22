@@ -194,6 +194,10 @@ export class DataService {
     return this.api.delete<{ message: string }>(`/admin/users/${id}`);
   }
 
+  adminCreateUser(user: any): Promise<UserAccount> {
+    return this.api.post<UserAccount>('/admin/users', user);
+  }
+
   // --- Profile API ---
   getProfile(): Promise<{ username: string; email: string; role: string }> {
     return this.api.get<{ username: string; email: string; role: string }>('/profile');
