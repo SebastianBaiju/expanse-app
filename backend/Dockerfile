@@ -11,7 +11,8 @@ RUN go mod download
 COPY . .
 
 # Build binary with CGO disabled and cross-compile to target platform
-ARG TARGETOS TARGETARCH
+ARG TARGETOS
+ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -installsuffix cgo -o main cmd/main.go
 
 # Stage 2: Minimal runner
