@@ -62,6 +62,7 @@ MANIFESTS=(
     "kubernetes/model.yaml"
     "kubernetes/backend.yaml"
     "kubernetes/frontend.yaml"
+    "kubernetes/nginx-proxy.yaml"
     "kubernetes/ingress.yaml"
 )
 
@@ -74,7 +75,13 @@ for manifest in "${MANIFESTS[@]}"; do
     fi
 done
 
-# 4. Wait for deployments to become ready
+# 4. Force a rollout restart of app deployments to pull latest images
+echo -e "${CYAN}[*] Restarting deployments to pull latest images...${NC}"
+kubectl rollout restart deployment/backend -n exp-management
+kubectl rollout restart deployment/frontend -n exp-management
+kubectl rollout restart deployment/nginx-proxy -n exp-management
+
+# 5. Wait for deployments to become ready
 echo -e "${CYAN}[*] Waiting for deployments to become ready in namespace 'exp-management'...${NC}"
 echo -e "${YELLOW}(This might take a minute as images are pulled and services start)${NC}"
 
@@ -83,6 +90,7 @@ kubectl rollout status statefulset/db -n exp-management --timeout=120s || true
 kubectl rollout status deployment/model -n exp-management --timeout=120s || true
 kubectl rollout status deployment/backend -n exp-management --timeout=120s || true
 kubectl rollout status deployment/frontend -n exp-management --timeout=120s || true
+kubectl rollout status deployment/nginx-proxy -n exp-management --timeout=120s || true
 
 # 5. Display Pod status
 echo -e "\n${BLUE}=============================================${NC}"
@@ -93,6 +101,7 @@ echo -e "${BLUE}=============================================${NC}"
 
 # 6. Success message
 echo -e "${GREEN}[+] SUCCESS: Application components applied!${NC}"
-echo -e "Access the frontend via NodePort: http://localhost:30081"
+echo -e "Access the separate Nginx Proxy: http://localhost:30080"
+echo -e "Access the frontend directly: http://localhost:30081"
 echo -e "Or via Ingress Host: http://expense-manager.local"
 echo -e "${BLUE}=============================================${NC}"

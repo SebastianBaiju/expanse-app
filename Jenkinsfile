@@ -45,9 +45,12 @@ pipeline {
                     sh 'kubectl apply -f kubernetes/model.yaml'
                     sh 'kubectl apply -f kubernetes/backend.yaml'
                     sh 'kubectl apply -f kubernetes/frontend.yaml'
+                    sh 'kubectl apply -f kubernetes/nginx-proxy.yaml'
+                    sh 'kubectl apply -f kubernetes/ingress.yaml'
                     
                     sh 'kubectl rollout restart deployment/backend -n exp-management'
                     sh 'kubectl rollout restart deployment/frontend -n exp-management'
+                    sh 'kubectl rollout restart deployment/nginx-proxy -n exp-management'
                 }
             }
         }

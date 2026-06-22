@@ -12,22 +12,11 @@ spec:
     - host: expense-manager.local  # Replace with your actual domain or leave empty for wildcard
       http:
         paths:
-          # Approach A: Let the frontend Nginx handle the API proxying internally (Recommended)
-          # With this approach, you only need to point the root path to the frontend.
+          # Route all traffic to the separate Nginx proxy server
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: nginx-proxy
                 port:
                   number: 80
-
-          # Approach B: Direct Ingress-level routing (Alternative)
-          # If you want the Ingress Controller to route traffic directly without passing through frontend Nginx for API:
-          # - path: /api
-          #   pathType: Prefix
-          #   backend:
-          #     service:
-          #       name: backend
-          #       port:
-          #         number: 8080
