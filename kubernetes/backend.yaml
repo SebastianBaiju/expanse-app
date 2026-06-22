@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: exp-management
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: exp-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: sebu5683/expense-manager-backend:latest
+          env:
+            - name: GIN_MODE
+              value: release
+            - name: DB_HOST
+              value: db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: expense-manager-secrets
+                  key: postgres-password
+            - name: DB_NAME
+              value: expense_manager
+            - name: DB_SSLMODE
+              value: disable
+            - name: OLLAMA_HOST
+              value: http://model:11434
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: backend-data
+              mountPath: /root
+      volumes:
+        - name: backend-data
+          persistentVolumeClaim:
+            claimName: backend-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-pvc
+  namespace: exp-management
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

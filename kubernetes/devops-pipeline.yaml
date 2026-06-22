@@ -1,0 +1,50 @@
+apiVersion: devops.kubesphere.io/v1alpha3
+kind: DevOpsProject
+metadata:
+  name: expense-manager-devops
+  labels:
+    kubesphere.io/workspace: expanse-management
+    kubesphere.io/managed: "true"
+spec: {}
+---
+apiVersion: devops.kubesphere.io/v1alpha3
+kind: Pipeline
+metadata:
+  name: expense-manager-pipeline
+  namespace: expense-manager-devops
+spec:
+  type: multi-branch-pipeline
+  multi_branch_pipeline:
+    name: expense-manager-pipeline
+    script_path: Jenkinsfile
+    source_type: git
+    git_source:
+      url: https://github.com/SebastianBaiju/expense-manager.git
+      credential_id: github-credentials
+      discover_branches: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dockerhub-credentials
+  namespace: expense-manager-devops
+  annotations:
+    devops.kubesphere.io/credential-type: basic-auth
+    kubesphere.io/creator: admin
+type: Opaque
+stringData:
+  username: sebu5683
+  password: YOUR_DOCKERHUB_PASSWORD_OR_TOKEN
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-credentials
+  namespace: expense-manager-devops
+  annotations:
+    devops.kubesphere.io/credential-type: basic-auth
+    kubesphere.io/creator: admin
+type: Opaque
+stringData:
+  username: SebastianBaiju
+  password: YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
