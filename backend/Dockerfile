@@ -1,8 +1,5 @@
 # Stage 1: Build the Go binary
-FROM golang:alpine AS builder
-
-# Install build tools for CGO compilation (required for sqlite3)
-RUN apk add --no-cache gcc musl-dev
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -13,8 +10,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build binary with CGO enabled
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main cmd/main.go
+# Build binary with CGO disabled and cross-compile to target platform
+ARG TARGETOS TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -installsuffix cgo -o main cmd/main.go
 
 # Stage 2: Minimal runner
 FROM alpine:latest  

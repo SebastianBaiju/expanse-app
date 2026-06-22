@@ -27,7 +27,12 @@ if ! $DOCKER_CMD login; then
     exit 1
 fi
 
-# 4. Tag Images
+# 4. Build Images
+echo "[*] Building latest backend and frontend docker images..."
+$DOCKER_CMD build --platform linux/amd64 -t expense-manager-backend:latest backend/
+$DOCKER_CMD build --platform linux/amd64 -t expense-manager-frontend:latest frontend/
+
+# 5. Tag Images
 echo "[*] Tagging images..."
 $DOCKER_CMD tag expense-manager-backend:latest "$USERNAME/expense-manager-backend:latest"
 $DOCKER_CMD tag expense-manager-frontend:latest "$USERNAME/expense-manager-frontend:latest"
