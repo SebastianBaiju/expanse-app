@@ -1,6 +1,6 @@
 {
-  "name": "frontend",
-  "short_name": "frontend",
+  "name": "Wallet",
+  "short_name": "Wallet",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",

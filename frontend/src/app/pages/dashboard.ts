@@ -407,6 +407,11 @@ import { AuthService } from '../services/auth';
       grid-template-columns: 1fr 1fr;
       gap: 0.75rem;
     }
+    @media (max-width: 500px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
     .recent-section {
       padding: 1.5rem;
     }

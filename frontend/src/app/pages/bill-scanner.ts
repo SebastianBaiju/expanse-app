@@ -256,6 +256,11 @@ import { DataService } from '../services/data';
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
     }
+    @media (max-width: 500px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     .w-full { width: 100%; }
     .submit-btn {
       margin-top: 1rem;

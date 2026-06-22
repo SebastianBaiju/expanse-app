@@ -171,10 +171,12 @@
     justify-content: space-between;
     position: fixed;
     top: 0; left: 0; right: 0;
-    height: var(--header-height);
+    height: calc(var(--header-height) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--card-border);
-    padding: 0 1.5rem;
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
     z-index: 45;
   }
   .hamburger-btn {

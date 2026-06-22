@@ -18,7 +18,7 @@ import { AuthService } from '../services/auth';
       </div>
 
       <div class="profile-grid">
-        <!-- Profile details card -->
+        <!-- Card 1: Account Details -->
         <div class="glass-card profile-card">
           <div class="profile-header">
             <div class="avatar-large">
@@ -30,12 +30,14 @@ import { AuthService } from '../services/auth';
             </div>
           </div>
 
-          <form (ngSubmit)="saveProfile()" class="profile-form">
-            @if (successMessage()) {
-              <div class="alert alert-success">{{ successMessage() }}</div>
+          <form (ngSubmit)="saveDetails()" class="profile-form">
+            <h4 style="margin-bottom: 0.25rem; color: var(--primary);">Update Account Details</h4>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0.75rem;">Modify username and email address.</p>
+            @if (detailsSuccessMessage()) {
+              <div class="alert alert-success">{{ detailsSuccessMessage() }}</div>
             }
-            @if (errorMessage()) {
-              <div class="alert alert-error">{{ errorMessage() }}</div>
+            @if (detailsErrorMessage()) {
+              <div class="alert alert-error">{{ detailsErrorMessage() }}</div>
             }
 
             <div class="form-group">
@@ -48,23 +50,46 @@ import { AuthService } from '../services/auth';
               <input type="email" class="form-input" [(ngModel)]="email" name="email" required placeholder="name@example.com" />
             </div>
 
+            <div class="form-group" style="margin-top: 0.5rem; border-top: 1px solid var(--card-border); padding-top: 1rem;">
+              <label class="form-label" style="color: #f59e0b;">Current Password (Required to save changes)</label>
+              <input type="password" class="form-input" [(ngModel)]="detailsConfirmPassword" name="detailsConfirmPassword" required placeholder="Enter current password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full" [disabled]="detailsLoading()">
+              {{ detailsLoading() ? 'Updating Details...' : 'Save Account Details' }}
+            </button>
+          </form>
+        </div>
+
+        <!-- Card 2: Change Password -->
+        <div class="glass-card profile-card">
+          <form (ngSubmit)="changePassword()" class="profile-form">
+            <h4 style="margin-bottom: 0.25rem; color: var(--primary);">Change Secure Password</h4>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0.75rem;">Update login credentials.</p>
+            @if (passwordSuccessMessage()) {
+              <div class="alert alert-success">{{ passwordSuccessMessage() }}</div>
+            }
+            @if (passwordErrorMessage()) {
+              <div class="alert alert-error">{{ passwordErrorMessage() }}</div>
+            }
+
             <div class="form-group">
-              <label class="form-label">Change Password (Leave blank to keep current)</label>
-              <input type="password" class="form-input" [(ngModel)]="newPassword" name="newPassword" minlength="6" placeholder="Enter new password (min. 6 chars)" />
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-input" [(ngModel)]="newPassword" name="newPassword" required minlength="6" placeholder="Enter new password (min. 6 chars)" />
             </div>
 
             <div class="form-group">
               <label class="form-label">Confirm New Password</label>
-              <input type="password" class="form-input" [(ngModel)]="confirmPassword" name="confirmPassword" minlength="6" placeholder="Confirm new password" />
+              <input type="password" class="form-input" [(ngModel)]="confirmPassword" name="confirmPassword" required minlength="6" placeholder="Confirm new password" />
             </div>
 
             <div class="form-group" style="margin-top: 0.5rem; border-top: 1px solid var(--card-border); padding-top: 1rem;">
-              <label class="form-label text-warning" style="color: #f59e0b;">Current Password (Required to authorize any changes)</label>
-              <input type="password" class="form-input" [(ngModel)]="previousPassword" name="previousPassword" required placeholder="Confirm identity with current password" />
+              <label class="form-label" style="color: #f59e0b;">Current Password (Required to save changes)</label>
+              <input type="password" class="form-input" [(ngModel)]="passwordConfirmPassword" name="passwordConfirmPassword" required placeholder="Enter current password" />
             </div>
 
-            <button type="submit" class="btn btn-primary w-full" [disabled]="loading()">
-              {{ loading() ? 'Updating Profile...' : 'Save Profile Changes' }}
+            <button type="submit" class="btn btn-primary w-full" [disabled]="passwordLoading()">
+              {{ passwordLoading() ? 'Updating Password...' : 'Update Password' }}
             </button>
           </form>
         </div>
@@ -84,7 +109,7 @@ import { AuthService } from '../services/auth';
     }
     .profile-grid {
       display: grid;
-      grid-template-columns: minmax(320px, 500px);
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.5rem;
     }
     .profile-card {
@@ -171,15 +196,21 @@ export class ProfilePage implements OnInit {
   readonly username = signal('');
   readonly role = signal('');
   
+  // Details Form State
   editableUsername = '';
   email = '';
+  detailsConfirmPassword = '';
+  readonly detailsLoading = signal(false);
+  readonly detailsSuccessMessage = signal<string | null>(null);
+  readonly detailsErrorMessage = signal<string | null>(null);
+
+  // Password Form State
   newPassword = '';
   confirmPassword = '';
-  previousPassword = '';
-
-  readonly loading = signal(false);
-  readonly successMessage = signal<string | null>(null);
-  readonly errorMessage = signal<string | null>(null);
+  passwordConfirmPassword = '';
+  readonly passwordLoading = signal(false);
+  readonly passwordSuccessMessage = signal<string | null>(null);
+  readonly passwordErrorMessage = signal<string | null>(null);
 
   ngOnInit() {
     this.loadProfile();
@@ -195,64 +226,91 @@ export class ProfilePage implements OnInit {
       this.email = p.email;
     } catch (err) {
       console.error('Failed to load profile details', err);
-      this.errorMessage.set('Failed to retrieve profile data.');
+      this.detailsErrorMessage.set('Failed to retrieve profile data.');
     }
   }
 
-  async saveProfile() {
-    this.successMessage.set(null);
-    this.errorMessage.set(null);
+  async saveDetails() {
+    this.detailsSuccessMessage.set(null);
+    this.detailsErrorMessage.set(null);
 
     if (!this.editableUsername) {
-      this.errorMessage.set('Username is required.');
+      this.detailsErrorMessage.set('Username is required.');
       return;
     }
     if (!this.email) {
-      this.errorMessage.set('Email address is required.');
+      this.detailsErrorMessage.set('Email address is required.');
       return;
     }
-    if (!this.previousPassword) {
-      this.errorMessage.set('Current password is required to authorize modifications.');
+    if (!this.detailsConfirmPassword) {
+      this.detailsErrorMessage.set('Current password is required to save details.');
       return;
     }
 
-    if (this.newPassword) {
-      if (this.newPassword.length < 6) {
-        this.errorMessage.set('New password must be at least 6 characters long.');
-        return;
-      }
-      if (this.newPassword !== this.confirmPassword) {
-        this.errorMessage.set('New password and confirm password do not match.');
-        return;
-      }
-    }
-
-    this.loading.set(true);
+    this.detailsLoading.set(true);
 
     try {
       const res = await this.dataService.updateProfile(
         this.editableUsername,
         this.email,
-        this.previousPassword,
-        this.newPassword || undefined
+        this.detailsConfirmPassword,
+        undefined
       );
       
-      this.successMessage.set(res.message || 'Profile updated successfully!');
-      
-      // Update local state signals
+      this.detailsSuccessMessage.set(res.message || 'Account details updated successfully!');
       this.username.set(res.username);
-      
-      // Reset sensitive fields
-      this.newPassword = '';
-      this.confirmPassword = '';
-      this.previousPassword = '';
+      this.detailsConfirmPassword = '';
       
       // Update session signals in AuthService so header/sidebar updates immediately
       this.auth.updateSessionDetails(res.email, res.username);
     } catch (err: any) {
-      this.errorMessage.set(err.message || 'Failed to update user profile.');
+      this.detailsErrorMessage.set(err.message || 'Failed to update account details.');
     } finally {
-      this.loading.set(false);
+      this.detailsLoading.set(false);
+    }
+  }
+
+  async changePassword() {
+    this.passwordSuccessMessage.set(null);
+    this.passwordErrorMessage.set(null);
+
+    if (!this.newPassword || !this.confirmPassword) {
+      this.passwordErrorMessage.set('New password and password confirmation are required.');
+      return;
+    }
+    if (this.newPassword.length < 6) {
+      this.passwordErrorMessage.set('New password must be at least 6 characters long.');
+      return;
+    }
+    if (this.newPassword !== this.confirmPassword) {
+      this.passwordErrorMessage.set('New password and confirm password do not match.');
+      return;
+    }
+    if (!this.passwordConfirmPassword) {
+      this.passwordErrorMessage.set('Current password is required to verify changes.');
+      return;
+    }
+
+    this.passwordLoading.set(true);
+
+    try {
+      const res = await this.dataService.updateProfile(
+        this.username(),
+        this.email,
+        this.passwordConfirmPassword,
+        this.newPassword
+      );
+      
+      this.passwordSuccessMessage.set(res.message || 'Password changed successfully!');
+      
+      // Reset sensitive fields
+      this.newPassword = '';
+      this.confirmPassword = '';
+      this.passwordConfirmPassword = '';
+    } catch (err: any) {
+      this.passwordErrorMessage.set(err.message || 'Failed to update secure password.');
+    } finally {
+      this.passwordLoading.set(false);
     }
   }
 }

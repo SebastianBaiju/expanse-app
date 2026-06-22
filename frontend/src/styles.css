@@ -89,7 +89,10 @@ h1, h2, h3, h4, h5, h6 {
   .main-content {
     margin-left: 0;
     padding: 1.5rem;
-    padding-top: calc(var(--header-height) + 1rem);
+    padding-top: calc(var(--header-height) + 1.25rem + env(safe-area-inset-top));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
   }
 }
 
