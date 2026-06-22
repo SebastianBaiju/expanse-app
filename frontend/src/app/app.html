@@ -38,6 +38,9 @@
         <a routerLink="/bank-statement" routerLinkActive="active" class="menu-item" (click)="closeSidebar()">
           <span class="material-symbols-outlined menu-icon">account_balance</span> Bank Statement
         </a>
+        <a routerLink="/profile" routerLinkActive="active" class="menu-item" (click)="closeSidebar()">
+          <span class="material-symbols-outlined menu-icon">person</span> Profile Management
+        </a>
         
         <!-- Admin only navigation link -->
         @if (auth.isAdmin()) {

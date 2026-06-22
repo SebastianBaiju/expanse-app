@@ -193,4 +193,13 @@ export class DataService {
   deleteUser(id: number): Promise<{ message: string }> {
     return this.api.delete<{ message: string }>(`/admin/users/${id}`);
   }
+
+  // --- Profile API ---
+  getProfile(): Promise<{ username: string; email: string; role: string }> {
+    return this.api.get<{ username: string; email: string; role: string }>('/profile');
+  }
+
+  updateProfile(email: string, password?: string): Promise<{ message: string; email: string; username: string }> {
+    return this.api.put<{ message: string; email: string; username: string }>('/profile', { email, password });
+  }
 }

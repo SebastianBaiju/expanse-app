@@ -169,3 +169,77 @@ func Login(c *gin.Context) {
 		"email":    user.Email,
 	})
 }
+
+type UpdateProfileRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password"`
+}
+
+// GetProfile retrieves the authenticated user's profile details.
+func GetProfile(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"username": user.Username,
+		"email":    user.Email,
+		"role":     user.Role,
+	})
+}
+
+// UpdateProfile updates the authenticated user's profile.
+func UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	user.Email = req.Email
+
+	if req.Password != "" {
+		if len(req.Password) < 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 6 characters long"})
+			return
+		}
+		// Hash new password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt password"})
+			return
+		}
+		user.PasswordHash = string(hashedPassword)
+	}
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Profile updated successfully",
+		"email":    user.Email,
+		"username": user.Username,
+	})
+}

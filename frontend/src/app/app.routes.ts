@@ -75,6 +75,11 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard]
   },
   {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile').then(m => m.ProfilePage),
+    canActivate: [authGuard]
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full'

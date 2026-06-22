@@ -62,4 +62,13 @@ export class AuthService {
   isAdmin(): boolean {
     return this.currentUserRole() === 'admin';
   }
+
+  updateSessionDetails(email: string, username: string): void {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('email', email);
+      localStorage.setItem('username', username);
+    }
+    this.currentUser.set(username);
+    this.currentUserEmail.set(email);
+  }
 }

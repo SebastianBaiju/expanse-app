@@ -20,7 +20,7 @@ Before deploying, build and tag your Docker images, then push them to a registry
    ```bash
    ./push.sh
    ```
-2. Enter your registry/Docker Hub username (e.g. `sebastianbaiju`). This will compile, tag, and push:
+2. Enter your registry/Docker Hub username (e.g. `sebu5683`). This will compile, tag, and push:
    - `<username>/expense-manager-backend:latest`
    - `<username>/expense-manager-frontend:latest`
 

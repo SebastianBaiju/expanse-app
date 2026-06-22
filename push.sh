@@ -15,8 +15,8 @@ else
 fi
 
 # 2. Get Docker Hub Username
-read -p "Enter your Docker Hub username [default: sebastianbaiju]: " USERNAME
-USERNAME=${USERNAME:-sebastianbaiju}
+read -p "Enter your Docker Hub username [default: sebu5683]: " USERNAME
+USERNAME=${USERNAME:-sebu5683}
 
 echo "[*] Using Docker Hub username: $USERNAME"
 echo "[*] Checking registry login status..."

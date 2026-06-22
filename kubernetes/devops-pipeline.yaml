@@ -19,8 +19,7 @@ spec:
     script_path: Jenkinsfile
     source_type: git
     git_source:
-      url: https://github.com/SebastianBaiju/expense-manager.git
-      credential_id: github-credentials
+      url: https://github.com/SebastianBaiju/expanse-app.git
       discover_branches: true
 ---
 apiVersion: v1
@@ -35,16 +34,4 @@ type: credential.devops.kubesphere.io/basic-auth
 stringData:
   username: sebu5683
   password: YOUR_DOCKERHUB_PASSWORD_OR_TOKEN
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: github-credentials
-  namespace: expense-manager-devops
-  annotations:
-    devops.kubesphere.io/credential-type: basic-auth
-    kubesphere.io/creator: admin
-type: credential.devops.kubesphere.io/basic-auth
-stringData:
-  username: SebastianBaiju
-  password: YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
+

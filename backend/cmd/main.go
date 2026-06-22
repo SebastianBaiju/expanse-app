@@ -71,6 +71,10 @@ func main() {
 		// Dashboard stats
 		api.GET("/dashboard/stats", handlers.GetDashboardStats)
 
+		// Profile
+		api.GET("/profile", handlers.GetProfile)
+		api.PUT("/profile", handlers.UpdateProfile)
+
 		// Transactions
 		api.GET("/transactions", handlers.GetTransactions)
 		api.POST("/transactions", handlers.CreateTransaction)
