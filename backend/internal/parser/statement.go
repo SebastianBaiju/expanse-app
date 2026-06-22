@@ -22,7 +22,7 @@ type ParsedStatement struct {
 }
 
 var (
-	statementDateRe = regexp.MustCompile(`\b(\d{2}[-/\.]\d{2}[-/\.]\d{2,4})\b`)
+	statementDateRe = regexp.MustCompile(`\b(\d{4}[-/\.]\d{2}[-/\.]\d{2}|\d{2}[-/\.]\d{2}[-/\.]\d{2,4})\b`)
 	amountRe        = regexp.MustCompile(`(?:Rs\.?|INR|USD|\$)?\s*([0-9,]+\.[0-9]{2})`)
 	skipLineRe      = regexp.MustCompile(`(?i)(opening\s+balance|closing\s+balance|brought\s+forward|carried\s+forward|statement\s+period|account\s+number|ifsc|branch\s+name|page\s+\d|total\s+debit|total\s+credit|available\s+balance)`)
 	creditHintRe    = regexp.MustCompile(`(?i)(^|\s)(cr|credit|salary|refund|received|deposit|interest\s+credit|neft\s+cr|imps\s+cr|upi\s+cr|transfer\s+from)`)
@@ -271,7 +271,7 @@ func categorizeStatementLine(title, txType string) string {
 }
 
 func parseStatementDate(raw string) time.Time {
-	for _, layout := range []string{"02-01-2006", "01-02-2006", "02/01/2006", "01/02/2006", "02.01.2006", "01.02.2006", "02-01-06", "01-02-06"} {
+	for _, layout := range []string{"2006-01-02", "2006/01/02", "2006.01.02", "02-01-2006", "01-02-2006", "02/01/2006", "01/02/2006", "02.01.2006", "01.02.2006", "02-01-06", "01-02-06"} {
 		if t, err := time.Parse(layout, raw); err == nil {
 			return t
 		}

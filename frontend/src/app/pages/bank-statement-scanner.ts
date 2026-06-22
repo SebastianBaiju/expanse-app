@@ -63,12 +63,14 @@ interface EditableLine extends ParsedStatementLine {
             </div>
           }
 
-          @if (isParsing() && activeTab() === 'upload') {
+          @if (isParsing()) {
             <div class="ocr-progress">
               <div class="spinner"></div>
               <div>
                 <h4>Scanning statement...</h4>
-                <p class="text-muted">Extracting transaction lines from the document.</p>
+                <p class="text-muted">
+                  {{ activeTab() === 'upload' ? 'Extracting transaction lines from the document.' : 'Analyzing pasted transaction text.' }}
+                </p>
               </div>
             </div>
           }

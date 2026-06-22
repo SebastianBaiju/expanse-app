@@ -46,3 +46,20 @@ func TestParseStatementCSV(t *testing.T) {
 		t.Errorf("unexpected types: %+v, %+v", result.Lines[0], result.Lines[1])
 	}
 }
+
+func TestParseStatementText_ISODates(t *testing.T) {
+	text := `Bank Statement
+2026-06-01 UPI/SWIGGY FOOD 450.00 12,345.67
+2026/06/02 NEFT SALARY CREDIT 75,000.00 87,345.67`
+
+	result := ParseStatementText(text)
+	if len(result.Lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d", len(result.Lines))
+	}
+	if result.Lines[0].Date.Year() != 2026 || result.Lines[0].Date.Month() != 6 || result.Lines[0].Date.Day() != 1 {
+		t.Errorf("unexpected date for line 0: %v", result.Lines[0].Date)
+	}
+	if result.Lines[1].Date.Year() != 2026 || result.Lines[1].Date.Month() != 6 || result.Lines[1].Date.Day() != 2 {
+		t.Errorf("unexpected date for line 1: %v", result.Lines[1].Date)
+	}
+}
