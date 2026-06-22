@@ -39,8 +39,8 @@ import { AuthService } from '../services/auth';
             }
 
             <div class="form-group">
-              <label class="form-label">Username (Immutable)</label>
-              <input type="text" class="form-input disabled-input" [value]="username()" disabled />
+              <label class="form-label">Username</label>
+              <input type="text" class="form-input" [(ngModel)]="editableUsername" name="username" required placeholder="Enter new username" minlength="3" />
             </div>
 
             <div class="form-group">
@@ -50,11 +50,21 @@ import { AuthService } from '../services/auth';
 
             <div class="form-group">
               <label class="form-label">Change Password (Leave blank to keep current)</label>
-              <input type="password" class="form-input" [(ngModel)]="password" name="password" minlength="6" placeholder="Enter new password (min. 6 chars)" />
+              <input type="password" class="form-input" [(ngModel)]="newPassword" name="newPassword" minlength="6" placeholder="Enter new password (min. 6 chars)" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" class="form-input" [(ngModel)]="confirmPassword" name="confirmPassword" minlength="6" placeholder="Confirm new password" />
+            </div>
+
+            <div class="form-group" style="margin-top: 0.5rem; border-top: 1px solid var(--card-border); padding-top: 1rem;">
+              <label class="form-label text-warning" style="color: #f59e0b;">Current Password (Required to authorize any changes)</label>
+              <input type="password" class="form-input" [(ngModel)]="previousPassword" name="previousPassword" required placeholder="Confirm identity with current password" />
             </div>
 
             <button type="submit" class="btn btn-primary w-full" [disabled]="loading()">
-              {{ loading() ? 'Saving Changes...' : 'Save Profile Details' }}
+              {{ loading() ? 'Updating Profile...' : 'Save Profile Changes' }}
             </button>
           </form>
         </div>
@@ -160,8 +170,12 @@ export class ProfilePage implements OnInit {
 
   readonly username = signal('');
   readonly role = signal('');
+  
+  editableUsername = '';
   email = '';
-  password = '';
+  newPassword = '';
+  confirmPassword = '';
+  previousPassword = '';
 
   readonly loading = signal(false);
   readonly successMessage = signal<string | null>(null);
@@ -176,6 +190,8 @@ export class ProfilePage implements OnInit {
       const p = await this.dataService.getProfile();
       this.username.set(p.username);
       this.role.set(p.role);
+      
+      this.editableUsername = p.username;
       this.email = p.email;
     } catch (err) {
       console.error('Failed to load profile details', err);
@@ -184,21 +200,54 @@ export class ProfilePage implements OnInit {
   }
 
   async saveProfile() {
+    this.successMessage.set(null);
+    this.errorMessage.set(null);
+
+    if (!this.editableUsername) {
+      this.errorMessage.set('Username is required.');
+      return;
+    }
     if (!this.email) {
       this.errorMessage.set('Email address is required.');
       return;
     }
+    if (!this.previousPassword) {
+      this.errorMessage.set('Current password is required to authorize modifications.');
+      return;
+    }
+
+    if (this.newPassword) {
+      if (this.newPassword.length < 6) {
+        this.errorMessage.set('New password must be at least 6 characters long.');
+        return;
+      }
+      if (this.newPassword !== this.confirmPassword) {
+        this.errorMessage.set('New password and confirm password do not match.');
+        return;
+      }
+    }
 
     this.loading.set(true);
-    this.successMessage.set(null);
-    this.errorMessage.set(null);
 
     try {
-      const res = await this.dataService.updateProfile(this.email, this.password || undefined);
-      this.successMessage.set(res.message || 'Profile updated successfully!');
-      this.password = '';
+      const res = await this.dataService.updateProfile(
+        this.editableUsername,
+        this.email,
+        this.previousPassword,
+        this.newPassword || undefined
+      );
       
-      // Update session signals in AuthService so header/sidebar update immediately
+      this.successMessage.set(res.message || 'Profile updated successfully!');
+      
+      // Update local state signals
+      this.username.set(res.username);
+      
+      // Reset sensitive fields
+      this.newPassword = '';
+      this.confirmPassword = '';
+      this.previousPassword = '';
+      
+      // Update session signals in AuthService so header/sidebar updates immediately
       this.auth.updateSessionDetails(res.email, res.username);
     } catch (err: any) {
       this.errorMessage.set(err.message || 'Failed to update user profile.');

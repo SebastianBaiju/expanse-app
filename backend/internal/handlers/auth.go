@@ -171,8 +171,10 @@ func Login(c *gin.Context) {
 }
 
 type UpdateProfileRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password"`
+	Username         string `json:"username" binding:"required,min=3"`
+	Email            string `json:"email" binding:"required,email"`
+	PreviousPassword string `json:"previous_password" binding:"required"`
+	NewPassword      string `json:"new_password"`
 }
 
 // GetProfile retrieves the authenticated user's profile details.
@@ -216,24 +218,40 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user.Email = req.Email
+	// Verify previous password to authenticate the change
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.PreviousPassword)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect current password"})
+		return
+	}
 
-	if req.Password != "" {
-		if len(req.Password) < 6 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 6 characters long"})
+	// If username changes, check for uniqueness
+	if req.Username != user.Username {
+		var existing models.User
+		if err := config.DB.Where("username = ?", req.Username).First(&existing).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 			return
 		}
-		// Hash new password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		user.Username = req.Username
+	}
+
+	user.Email = req.Email
+
+	// If new password is provided, validate length and hash it
+	if req.NewPassword != "" {
+		if len(req.NewPassword) < 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "New password must be at least 6 characters long"})
+			return
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt new password"})
 			return
 		}
 		user.PasswordHash = string(hashedPassword)
 	}
 
 	if err := config.DB.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile details"})
 		return
 	}
 

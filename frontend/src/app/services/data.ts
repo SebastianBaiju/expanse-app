@@ -203,7 +203,12 @@ export class DataService {
     return this.api.get<{ username: string; email: string; role: string }>('/profile');
   }
 
-  updateProfile(email: string, password?: string): Promise<{ message: string; email: string; username: string }> {
-    return this.api.put<{ message: string; email: string; username: string }>('/profile', { email, password });
+  updateProfile(username: string, email: string, previousPassword: string, newPassword?: string): Promise<{ message: string; email: string; username: string }> {
+    return this.api.put<{ message: string; email: string; username: string }>('/profile', {
+      username,
+      email,
+      previous_password: previousPassword,
+      new_password: newPassword || undefined
+    });
   }
 }
