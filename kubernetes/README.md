@@ -52,10 +52,19 @@ kubectl apply -f backend.yaml
 kubectl apply -f frontend.yaml
 ```
 
+### Step 6: Deploy Ingress (Proxy / Single-Server Route)
+To route both frontend and backend through a single host (proxy server), apply the ingress manifest:
+```bash
+kubectl apply -f ingress.yaml
+```
+
 ---
 
 ## Accessing the Application
 
-Once all pods are running (`kubectl get pods -n exp-management`), you can access the frontend web interface:
-- **URL**: `http://<Node-IP>:30081` (where `<Node-IP>` is any node IP of your Kubernetes cluster).
-- In KubeSphere Console, go to the **exp-management** project -> **Application Workloads** -> **Services** to view external NodePort mappings or configure an **Ingress Route** (reverse proxy URL) to expose the app over HTTP/HTTPS on port 80/443.
+Once all pods are running (`kubectl get pods -n exp-management`), you can access the application:
+1. **Direct via NodePort**: `http://<Node-IP>:30081`
+2. **Via Proxy/Ingress (Recommended)**: 
+   - **Using Console**: In KubeSphere Console, go to the **exp-management** project -> **Application Workloads** -> **Routes (Ingress)** -> **Create**.
+   - Configure a single rule mapping your domain (e.g., `expense-manager.local`) to the `frontend` service on port `80`. The frontend Nginx container automatically proxies all `/api/` traffic to the backend service.
+   - Alternatively, apply [ingress.yaml](file:///Users/sebu/Documents/expanse-app/kubernetes/ingress.yaml) directly.
