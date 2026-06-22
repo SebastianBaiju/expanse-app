@@ -34,18 +34,38 @@ func parseAmount(amtStr string) float64 {
 func CategorizeMerchant(merchant string) string {
 	merchantLower := strings.ToLower(merchant)
 
-	categories := map[string][]string{
-		"Food":        {"zomato", "swiggy", "starbucks", "mcdonald", "domino", "restaurant", "food", "cafe", "uber eats"},
-		"Travel":      {"uber", "ola", "irctc", "makemytrip", "yatra", "goibibo", "fuel", "petrol", "shell", "hpcl", "bpcl", "metro", "flight"},
-		"Shopping":    {"amazon", "flipkart", "myntra", "ajio", "retail", "supermarket", "grocery", "groceries", "mart", "dmart", "spencer"},
-		"Utilities":   {"electricity", "water", "gas", "bsnl", "jio", "airtel", "vi ", "recharge", "broadband", "insurance", "act fiber"},
-		"Entertainment": {"netflix", "spotify", "prime video", "disney", "hotstar", "bookmyshow", "cinema", "movie", "theater", "gaming", "steam"},
+	type rule struct {
+		category string
+		keywords []string
 	}
 
-	for cat, keywords := range categories {
-		for _, kw := range keywords {
+	rules := []rule{
+		{
+			category: "Shopping",
+			keywords: []string{"jiomart", "grocery", "groceries", "mart", "dmart", "supermarket", "spencer", "amazon", "flipkart", "myntra", "ajio", "retail", "landmark", "max retail", "seemas"},
+		},
+		{
+			category: "Food",
+			keywords: []string{"zomato", "swiggy", "starbucks", "mcdonald", "domino", "restaurant", "food", "cafe", "uber eats", "hotel", "kanthari"},
+		},
+		{
+			category: "Travel",
+			keywords: []string{"uber", "ola", "irctc", "makemytrip", "yatra", "goibibo", "fuel", "petrol", "shell", "hpcl", "bpcl", "metro", "flight", "fuels", "girilal"},
+		},
+		{
+			category: "Entertainment",
+			keywords: []string{"netflix", "spotify", "prime video", "disney", "hotstar", "bookmyshow", "cinema", "movie", "theater", "gaming", "steam", "tata play"},
+		},
+		{
+			category: "Utilities",
+			keywords: []string{"electricity", "water", "gas", "bsnl", "jio", "airtel", "vi ", "recharge", "broadband", "insurance", "act fiber"},
+		},
+	}
+
+	for _, r := range rules {
+		for _, kw := range r.keywords {
 			if strings.Contains(merchantLower, kw) {
-				return cat
+				return r.category
 			}
 		}
 	}

@@ -141,11 +141,30 @@ func parseStatementLine(line string) *ParsedStatementLine {
 	if title == "" {
 		return nil
 	}
+	title = CleanTransactionTitle(title)
 
 	amount := 0.0
 	if len(amounts) >= 2 {
 		// Common bank format: date description txn_amount balance
-		amount = parseAmount(amounts[0][1])
+		amount = parseAmount(amounts[len(amounts)-2][1])
+		
+		// Spacing detection for fixed-width columns
+		submatches := amountRe.FindAllStringSubmatchIndex(remainder, -1)
+		if len(submatches) >= 2 {
+			txnSub := submatches[len(submatches)-2]
+			balSub := submatches[len(submatches)-1]
+			if len(txnSub) >= 4 && len(balSub) >= 4 {
+				gapStr := remainder[txnSub[3]:balSub[2]]
+				if len(gapStr) >= 5 && strings.TrimSpace(gapStr) == "" {
+					if len(gapStr) <= 18 {
+						txType = "income"
+					} else {
+						txType = "expense"
+					}
+				}
+			}
+		}
+
 		if txType == "" {
 			txType = inferTypeFromDescription(title)
 		}
@@ -187,6 +206,7 @@ func parseCSVStatementLine(line string) *ParsedStatementLine {
 	if title == "" {
 		return nil
 	}
+	title = CleanTransactionTitle(title)
 
 	debit := 0.0
 	credit := 0.0
@@ -271,10 +291,77 @@ func categorizeStatementLine(title, txType string) string {
 }
 
 func parseStatementDate(raw string) time.Time {
-	for _, layout := range []string{"2006-01-02", "2006/01/02", "2006.01.02", "02-01-2006", "01-02-2006", "02/01/2006", "01/02/2006", "02.01.2006", "01.02.2006", "02-01-06", "01-02-06"} {
+	for _, layout := range []string{"2006-01-02", "2006/01/02", "2006.01.02", "02-01-2006", "01-02-2006", "02/01/2006", "01/02/2006", "02.01.2006", "01.02.2006", "02-01-06", "01-02-06", "02/01/06", "01/02/06", "02.01.06", "01.02.06"} {
 		if t, err := time.Parse(layout, raw); err == nil {
 			return t
 		}
 	}
 	return time.Time{}
+}
+
+// CleanTransactionTitle refines raw statement narration into a clean merchant name.
+func CleanTransactionTitle(rawTitle string) string {
+	// 1. Remove dates (e.g. DD/MM/YY, DD-MM-YYYY, YYYY-MM-DD, etc.)
+	datePattern := regexp.MustCompile(`\b(\d{2,4}[-/\.]\d{2}[-/\.]\d{2,4})\b`)
+	cleaned := datePattern.ReplaceAllString(rawTitle, " ")
+
+	// 2. Remove long digit sequences (reference/chq/phone numbers, 8+ digits)
+	refPattern := regexp.MustCompile(`\b\d{8,}\b`)
+	cleaned = refPattern.ReplaceAllString(cleaned, " ")
+
+	// 3. Remove email-like UPI IDs or trailing details after '@'
+	if atIdx := strings.Index(cleaned, "@"); atIdx != -1 {
+		cleaned = cleaned[:atIdx]
+	}
+
+	// 4. Remove common prefixes
+	prefixes := []string{
+		"UPI-", "REV-UPI-", "IMPS-", "NEFT-", "ACH D-", "FT-", "RTGS-", "POS-", "REV-", "AUTOPAY-",
+		"UPI/", "IMPS/", "NEFT/", "ACH/", "FT/", "RTGS/", "POS/", "REV/", "AUTOPAY/",
+		"UPI ", "IMPS ", "NEFT ", "ACH ", "FT ", "RTGS ", "POS ", "REV ", "AUTOPAY ",
+	}
+	for _, p := range prefixes {
+		if strings.HasPrefix(strings.ToUpper(cleaned), p) {
+			cleaned = cleaned[len(p):]
+		}
+	}
+
+	// Remove common payment channel tokens
+	paymentProviders := []string{"-PAYTM-", "-PHONEPE-", "-GPAY-", "-BHIM-", "-PAYZAPP-", "-AMAZONPAY-", "PAYTM", "PHONEPE", "GPAY", "BHIM", "PAYZAPP"}
+	for _, provider := range paymentProviders {
+		cleaned = strings.ReplaceAll(cleaned, provider, " ")
+	}
+
+	// 5. Clean up hyphenated numeric suffixes or short codes at the end.
+	cleaned = regexp.MustCompile(`\s*-\s*[A-Za-z]*[0-9]+[A-Za-z0-9]*\s*$`).ReplaceAllString(cleaned, "")
+	cleaned = regexp.MustCompile(`\s*-\s*$`).ReplaceAllString(cleaned, "")
+
+	// 6. Split by separators and deduplicate tokens
+	tokens := strings.FieldsFunc(cleaned, func(r rune) bool {
+		return r == '-' || r == ' ' || r == '/' || r == '|' || r == '_'
+	})
+
+	var uniqueTokens []string
+	seen := make(map[string]bool)
+	for _, token := range tokens {
+		tUpper := strings.ToUpper(token)
+		// Skip common noise words
+		if tUpper == "UPI" || tUpper == "PAYTM" || tUpper == "GPAY" || tUpper == "PHONEPE" || tUpper == "IMPS" || tUpper == "NEFT" || tUpper == "FT" || tUpper == "REV" || tUpper == "REMARK" || tUpper == "REMARKS" || tUpper == "NO" || tUpper == "VIA" || tUpper == "CRED" || tUpper == "PAY" || tUpper == "TO" || tUpper == "FROM" || tUpper == "ACH" || tUpper == "BD" || tUpper == "TP" {
+			continue
+		}
+		// Skip short alphanumeric fragments/codes
+		if len(token) > 4 && regexp.MustCompile(`[0-9]`).MatchString(token) && !regexp.MustCompile(`^[A-Za-z]+[0-9]+$`).MatchString(token) {
+			continue
+		}
+		if !seen[tUpper] {
+			seen[tUpper] = true
+			uniqueTokens = append(uniqueTokens, token)
+		}
+	}
+
+	if len(uniqueTokens) == 0 {
+		return strings.Join(strings.Fields(rawTitle), " ")
+	}
+
+	return strings.TrimSpace(strings.Join(uniqueTokens, " "))
 }
