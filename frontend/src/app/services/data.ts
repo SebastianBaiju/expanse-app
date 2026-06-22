@@ -75,16 +75,18 @@ export class DataService {
   private readonly api = inject(ApiService);
 
   // --- Transactions API ---
-  getDashboardStats(): Promise<DashboardStats> {
-    return this.api.get<DashboardStats>('/dashboard/stats');
+  getDashboardStats(userId?: number): Promise<DashboardStats> {
+    const query = userId ? `?user_id=${userId}` : '';
+    return this.api.get<DashboardStats>(`/dashboard/stats${query}`);
   }
 
-  getTransactions(type?: string, category?: string, search?: string, page: number = 1, limit: number = 10): Promise<PaginatedTransactions> {
+  getTransactions(type?: string, category?: string, search?: string, page: number = 1, limit: number = 10, userId?: number): Promise<PaginatedTransactions> {
     let query = '';
     const params: string[] = [];
     if (type) params.push(`type=${type}`);
     if (category) params.push(`category=${category}`);
     if (search) params.push(`search=${encodeURIComponent(search)}`);
+    if (userId) params.push(`user_id=${userId}`);
     params.push(`page=${page}`);
     params.push(`limit=${limit}`);
     
@@ -179,6 +181,11 @@ export class DataService {
     const formData = new FormData();
     formData.append('statement', file);
     return this.api.postMultipart<ParsedStatement>('/statements/parse', formData);
+  }
+
+  // --- Users API ---
+  getUsersList(): Promise<Array<{ id: number; username: string }>> {
+    return this.api.get<Array<{ id: number; username: string }>>('/users');
   }
 
   // --- Admin API ---

@@ -130,3 +130,16 @@ func AdminCreateUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, user)
 }
+
+// GetUsersList returns a list of user IDs and usernames for filtering transactions.
+func GetUsersList(c *gin.Context) {
+	var users []struct {
+		ID       uint   `json:"id"`
+		Username string `json:"username"`
+	}
+	if err := config.DB.Model(&models.User{}).Select("id, username").Order("username asc").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users list"})
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}

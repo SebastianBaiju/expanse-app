@@ -68,6 +68,9 @@ func main() {
 	api := r.Group("/api")
 	api.Use(handlers.AuthMiddleware())
 	{
+		// Users list for filtering
+		api.GET("/users", handlers.GetUsersList)
+
 		// Dashboard stats
 		api.GET("/dashboard/stats", handlers.GetDashboardStats)
 

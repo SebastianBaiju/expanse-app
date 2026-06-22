@@ -33,7 +33,16 @@ import { AuthService } from '../services/auth';
           <h2>Welcome back, {{ auth.currentUser() }}!</h2>
           <p class="text-muted">Here is your financial status overview.</p>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" style="display: flex; align-items: center; gap: 1.5rem;">
+          <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="filter-label" style="font-size: 0.85rem; color: var(--text-secondary); font-family: var(--font-display); font-weight: 500;">User:</span>
+            <select class="form-input form-select select-sm" style="min-width: 140px; padding: 0.5rem 2rem 0.5rem 1rem; font-size: 0.85rem;" [(ngModel)]="filterUser" (ngModelChange)="onUserFilterChange()">
+              <option value="">All Users</option>
+              @for (usr of users(); track usr.id) {
+                <option [value]="usr.id">{{ usr.username }}</option>
+              }
+            </select>
+          </div>
           <span class="badge" [class.badge-income]="auth.currentUserRole() === 'admin'">
             Role: {{ auth.currentUserRole() }}
           </span>
@@ -500,6 +509,10 @@ export class DashboardPage implements OnInit {
   readonly showPushBanner = signal(false);
   readonly isPushLoading = signal(false);
 
+  // Filters
+  filterUser: number | '' = '';
+  readonly users = signal<Array<{ id: number; username: string }>>([]);
+
   // Form Fields
   quickTitle = '';
   quickAmount?: number;
@@ -509,15 +522,31 @@ export class DashboardPage implements OnInit {
   ngOnInit() {
     this.loadStats();
     this.checkNotificationStatus();
+    this.loadUsers();
+  }
+
+  async loadUsers() {
+    try {
+      const list = await this.dataService.getUsersList();
+      this.users.set(list);
+    } catch (err) {
+      console.error('Failed to load users list', err);
+    }
   }
 
   async loadStats() {
     try {
-      const s = await this.dataService.getDashboardStats();
+      const s = await this.dataService.getDashboardStats(
+        this.filterUser === '' ? undefined : this.filterUser
+      );
       this.stats.set(s);
     } catch (err) {
       console.error('Failed to load dashboard metrics', err);
     }
+  }
+
+  onUserFilterChange() {
+    this.loadStats();
   }
 
   checkNotificationStatus() {

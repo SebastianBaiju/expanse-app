@@ -101,6 +101,16 @@ import { DataService, Transaction } from '../services/data';
               <option value="Other">Other</option>
             </select>
           </div>
+
+          <div class="filter-group">
+            <span class="filter-label">User</span>
+            <select class="form-input form-select select-sm" [(ngModel)]="filterUser" (ngModelChange)="onFilterChange()">
+              <option value="">All Users</option>
+              @for (usr of users(); track usr.id) {
+                <option [value]="usr.id">{{ usr.username }}</option>
+              }
+            </select>
+          </div>
         </div>
       </div>
 
@@ -122,10 +132,12 @@ import { DataService, Transaction } from '../services/data';
             <tbody>
               @for (tx of transactions(); track tx.id) {
                 <tr class="tx-row animate-fade-in">
-                  <td>
+                  <td [attr.data-meta]="tx.category + ' • ' + (tx.date | date:'mediumDate') + ' • ' + (tx.user?.username || 'System')">
                     <div class="tx-title-wrapper">
-                      <span class="tx-bullet" [class.bg-green]="tx.type === 'income'" [class.bg-rose]="tx.type === 'expense'"></span>
-                      <strong>{{ tx.title }}</strong>
+                      <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="tx-bullet" [class.bg-green]="tx.type === 'income'" [class.bg-rose]="tx.type === 'expense'"></span>
+                        <strong>{{ tx.title }}</strong>
+                      </div>
                     </div>
                   </td>
                   <td>
@@ -388,15 +400,58 @@ import { DataService, Transaction } from '../services/data';
       font-size: 0.95rem;
     }
     
-    /* Responsive columns logic: Hide User, Source, Date on very narrow mobile viewports */
+    /* Responsive columns logic: Turn table into card feed on mobile viewports */
     @media (max-width: 768px) {
-      .ledger-table th:nth-child(2), /* User */
+      .ledger-table, .ledger-table thead, .ledger-table tbody, .ledger-table tr, .ledger-table td {
+        display: block;
+        width: 100%;
+      }
+      .ledger-table thead {
+        display: none;
+      }
+      .ledger-table tr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--card-border);
+        gap: 1rem;
+      }
+      .ledger-table td {
+        padding: 0 !important;
+        border-bottom: none !important;
+        width: auto !important;
+      }
+      .ledger-table td:nth-child(1) {
+        flex: 1;
+        min-width: 0;
+      }
       .ledger-table td:nth-child(2),
-      .ledger-table th:nth-child(4), /* Source */
+      .ledger-table td:nth-child(3),
       .ledger-table td:nth-child(4),
-      .ledger-table th:nth-child(5), /* Date */
       .ledger-table td:nth-child(5) {
         display: none;
+      }
+      .ledger-table td:nth-child(6) {
+        text-align: right;
+        flex-shrink: 0;
+        font-size: 0.95rem;
+      }
+      .ledger-table td:nth-child(7) {
+        flex-shrink: 0;
+      }
+      .tx-title-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+      td[data-meta]::after {
+        content: attr(data-meta);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: 500;
+        display: block;
+        margin-top: 0.2rem;
       }
     }
   `]
@@ -418,6 +473,8 @@ export class TransactionsPage implements OnInit {
   readonly filterType = signal<string>('');
   filterCategory = '';
   searchKeyword = '';
+  filterUser: number | '' = '';
+  readonly users = signal<Array<{ id: number; username: string }>>([]);
 
   // Form Fields
   title = '';
@@ -428,6 +485,16 @@ export class TransactionsPage implements OnInit {
 
   ngOnInit() {
     this.loadTransactions();
+    this.loadUsers();
+  }
+
+  async loadUsers() {
+    try {
+      const list = await this.dataService.getUsersList();
+      this.users.set(list);
+    } catch (err) {
+      console.error('Failed to load users list', err);
+    }
   }
 
   async loadTransactions() {
@@ -437,7 +504,8 @@ export class TransactionsPage implements OnInit {
         this.filterCategory,
         this.searchKeyword,
         this.currentPage(),
-        this.pageSize()
+        this.pageSize(),
+        this.filterUser === '' ? undefined : this.filterUser
       );
       this.transactions.set(result.transactions);
       this.totalTransactions.set(result.total);

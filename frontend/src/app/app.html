@@ -70,6 +70,30 @@
     <main class="main-content">
       <router-outlet />
     </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav-bar">
+      <a routerLink="/dashboard" routerLinkActive="active" class="mobile-nav-item" (click)="closeSidebar()">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span>Home</span>
+      </a>
+      <a routerLink="/transactions" routerLinkActive="active" class="mobile-nav-item" (click)="closeSidebar()">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span>Ledger</span>
+      </a>
+      <a routerLink="/bank-statement" routerLinkActive="active" class="mobile-nav-item" (click)="closeSidebar()">
+        <span class="material-symbols-outlined">account_balance</span>
+        <span>Import</span>
+      </a>
+      <a routerLink="/recurring" routerLinkActive="active" class="mobile-nav-item" (click)="closeSidebar()">
+        <span class="material-symbols-outlined">schedule</span>
+        <span>Scheduler</span>
+      </a>
+      <a routerLink="/profile" routerLinkActive="active" class="mobile-nav-item" (click)="closeSidebar()">
+        <span class="material-symbols-outlined">person</span>
+        <span>Profile</span>
+      </a>
+    </nav>
   </div>
 } @else {
   <!-- Clean Full-Screen Login Interface -->

@@ -28,15 +28,20 @@ func getUserID(c *gin.Context) (uint, bool) {
 	return id, true
 }
 
-// GetTransactions returns all transactions for the current user.
+// GetTransactions returns all transactions.
 func GetTransactions(c *gin.Context) {
-	userID, ok := getUserID(c)
+	_, ok := getUserID(c)
 	if !ok {
 		return
 	}
 
 	var transactions []models.Transaction
-	query := config.DB.Model(&models.Transaction{}).Where("user_id = ?", userID)
+	query := config.DB.Model(&models.Transaction{})
+
+	// Optional filter by user ID
+	if filterUID := c.Query("user_id"); filterUID != "" {
+		query = query.Where("user_id = ?", filterUID)
+	}
 
 	// Filter by type (expense / income)
 	if t := c.Query("type"); t != "" {
@@ -216,7 +221,7 @@ func CreateTransactionsBulk(c *gin.Context) {
 
 // UpdateTransaction updates an existing transaction.
 func UpdateTransaction(c *gin.Context) {
-	userID, ok := getUserID(c)
+	_, ok := getUserID(c)
 	if !ok {
 		return
 	}
@@ -228,7 +233,7 @@ func UpdateTransaction(c *gin.Context) {
 	}
 
 	var transaction models.Transaction
-	if err := config.DB.Where("id = ? AND user_id = ?", txID, userID).First(&transaction).Error; err != nil {
+	if err := config.DB.Where("id = ?", txID).First(&transaction).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
 		return
 	}
@@ -275,7 +280,7 @@ func UpdateTransaction(c *gin.Context) {
 
 // DeleteTransaction deletes a transaction.
 func DeleteTransaction(c *gin.Context) {
-	userID, ok := getUserID(c)
+	_, ok := getUserID(c)
 	if !ok {
 		return
 	}
@@ -286,7 +291,7 @@ func DeleteTransaction(c *gin.Context) {
 		return
 	}
 
-	result := config.DB.Where("id = ? AND user_id = ?", txID, userID).Delete(&models.Transaction{})
+	result := config.DB.Where("id = ?", txID).Delete(&models.Transaction{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete transaction"})
 		return
@@ -312,31 +317,34 @@ type MonthlyTrend struct {
 
 // GetDashboardStats aggregates user financial data.
 func GetDashboardStats(c *gin.Context) {
-	userID, ok := getUserID(c)
+	_, ok := getUserID(c)
 	if !ok {
 		return
 	}
 
+	incomeQuery := config.DB.Model(&models.Transaction{}).Where("type = 'income'")
+	expenseQuery := config.DB.Model(&models.Transaction{}).Where("type = 'expense'")
+	categoryQuery := config.DB.Model(&models.Transaction{}).Where("type = 'expense'")
+	recentQuery := config.DB.Model(&models.Transaction{})
+
+	// Optional filter by user ID
+	if filterUID := c.Query("user_id"); filterUID != "" {
+		incomeQuery = incomeQuery.Where("user_id = ?", filterUID)
+		expenseQuery = expenseQuery.Where("user_id = ?", filterUID)
+		categoryQuery = categoryQuery.Where("user_id = ?", filterUID)
+		recentQuery = recentQuery.Where("user_id = ?", filterUID)
+	}
+
 	// 1. Calculate Total Income and Expense
 	var totalIncome, totalExpense float64
-	config.DB.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = 'income'", userID).
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalIncome)
-
-	config.DB.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = 'expense'", userID).
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalExpense)
+	incomeQuery.Select("COALESCE(SUM(amount), 0)").Scan(&totalIncome)
+	expenseQuery.Select("COALESCE(SUM(amount), 0)").Scan(&totalExpense)
 
 	// 2. Fetch Category breakdowns
 	var categoryBreakdowns []CategoryBreakdown
-	config.DB.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = 'expense'", userID).
-		Select("category, SUM(amount) as amount").
-		Group("category").
-		Scan(&categoryBreakdowns)
+	categoryQuery.Select("category, SUM(amount) as amount").Group("category").Scan(&categoryBreakdowns)
 
 	// 3. Fetch Monthly trends (last 6 months)
-	// We'll compute it via queries or construct in code. Let's do a simple code assembly for the last 6 months.
 	var monthlyTrends []MonthlyTrend
 	now := time.Now()
 	for i := 5; i >= 0; i-- {
@@ -347,13 +355,16 @@ func GetDashboardStats(c *gin.Context) {
 		monthName := t.Month().String()[:3] + " " + strconv.Itoa(t.Year())
 
 		var inc, exp float64
-		config.DB.Model(&models.Transaction{}).
-			Where("user_id = ? AND type = 'income' AND date BETWEEN ? AND ?", userID, startOfMonth, endOfMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&inc)
+		incQuery := config.DB.Model(&models.Transaction{}).Where("type = 'income' AND date BETWEEN ? AND ?", startOfMonth, endOfMonth)
+		expQuery := config.DB.Model(&models.Transaction{}).Where("type = 'expense' AND date BETWEEN ? AND ?", startOfMonth, endOfMonth)
 
-		config.DB.Model(&models.Transaction{}).
-			Where("user_id = ? AND type = 'expense' AND date BETWEEN ? AND ?", userID, startOfMonth, endOfMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&exp)
+		if filterUID := c.Query("user_id"); filterUID != "" {
+			incQuery = incQuery.Where("user_id = ?", filterUID)
+			expQuery = expQuery.Where("user_id = ?", filterUID)
+		}
+
+		incQuery.Select("COALESCE(SUM(amount), 0)").Scan(&inc)
+		expQuery.Select("COALESCE(SUM(amount), 0)").Scan(&exp)
 
 		monthlyTrends = append(monthlyTrends, MonthlyTrend{
 			Month:   monthName,
@@ -364,7 +375,7 @@ func GetDashboardStats(c *gin.Context) {
 
 	// 4. Get 5 most recent transactions
 	var recentTransactions []models.Transaction
-	config.DB.Where("user_id = ?", userID).Order("date desc").Limit(5).Find(&recentTransactions)
+	recentQuery.Preload("User").Order("date desc").Limit(5).Find(&recentTransactions)
 
 	c.JSON(http.StatusOK, gin.H{
 		"balance":             totalIncome - totalExpense,
